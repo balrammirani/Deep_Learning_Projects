@@ -5,12 +5,9 @@ from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.layers.convolutional import  MaxPooling2D,Conv2D,ZeroPadding2D,ZeroPadding3D
 from keras.utils import np_utils
 from keras.preprocessing.image import  img_to_array
-
-
 import numpy as np
 
 # Image manipulations and arranging data
-import os
 from PIL import Image
 from os import walk,path
 
@@ -58,7 +55,7 @@ train_data, train_labels, test_data, test_labels = load_cifar10_data(data_dir)
 
 
 batch_size=32
-nb_classes=200#len(classes)
+nb_classes=len(set(train_labels))
 nb_epoch=20
 nb_filters=32
 nb_pool=2
@@ -70,7 +67,6 @@ from keras.layers.normalization import BatchNormalization
 model= Sequential()
 
 model.add(Conv2D(64, (3, 3), padding="same",input_shape=train_data.shape[1:]))
-#model.add(Conv2D(64, (3, 3), padding="same",input_shape=x_train.shape[1:]))
 model.add(Activation("relu"))
 model.add(MaxPooling2D((2,2), strides=(2,2)))
 
@@ -79,32 +75,14 @@ model.add(Conv2D(128, (3, 3), padding="same"))
 model.add(Activation("relu"))
 model.add(BatchNormalization())
 model.add(MaxPooling2D((2,2), strides=(2,2)))
-#model.add(Dropout(0.5));
-# second set of CONV => RELU => POOL layers
-model.add(Conv2D(256, (3, 3), padding="same"))
-model.add(Activation("relu"))
-model.add(MaxPooling2D((2,2), strides=(2,2)))
 
-# Third set of CONV => RELU => POOL layers
-#model.add(Conv2D(512, (3, 3), padding="same"))
-#model.add(Activation("relu"))
-#model.add(MaxPooling2D((2,2), strides=(2,2)))
-
-
-# first (and only) set of FC => RELU layers
 model.add(Flatten())
-#model.add(Dense(100))
-#model.add(Activation("relu"))
-#
-#model.add(Dense(3000))
-#model.add(Activation("relu"))
-## softmax classifier
-model.add(Dense(10))#nb_classes))
+model.add(Dense(nb_classes))
 model.add(Activation("softmax"))
 
 model.compile(loss='categorical_crossentropy',optimizer='rmsprop',metrics=['accuracy'])
 model.summary()
-nb_epoch=25;
+nb_epoch=50;
 batch_size=5;
 Y_train_labels=np_utils.to_categorical(train_labels,10)
 
