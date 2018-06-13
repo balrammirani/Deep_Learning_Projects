@@ -1,4 +1,3 @@
-
 #importing Keras, Library for deep learning 
 from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation, Flatten
@@ -12,6 +11,10 @@ from PIL import Image
 from os import walk,path
 
 
+from numpy.random import seed
+seed(1)
+from tensorflow import set_random_seed
+set_random_seed(2)
 from sklearn.cross_validation import train_test_split
 
 
@@ -50,9 +53,16 @@ def load_cifar10_data(data_dir):
 
  return train_data, train_labels, test_data, test_labels
 
-data_dir = 'C:/Users/584061/Desktop/cifar-10-batches-py'
+
+
+
+data_dir = 'C:/../Desktop/cifar-10-batches-py'
 train_data, train_labels, test_data, test_labels = load_cifar10_data(data_dir)
 
+train_data=train_data - np.mean(train_data) / train_data.std() #normalizing the data
+test_data=test_data - np.mean(test_data) / test_data.std()
+
+(x_train, x_val, y_train, y_val) = train_test_split(train_data,train_labels, test_size=0.30, random_state=42)
 
 batch_size=32
 nb_classes=len(set(train_labels))
@@ -66,30 +76,41 @@ from keras.layers.normalization import BatchNormalization
 
 model= Sequential()
 
-model.add(Conv2D(64, (3, 3), padding="same",input_shape=train_data.shape[1:]))
-model.add(Activation("relu"))
+model.add(Conv2D(64, (3, 3),padding="same",activation = "relu",input_shape=train_data.shape[1:]))
+model.add(Conv2D(64, (3, 3), padding="same",activation = "relu",input_shape=train_data.shape[1:]))
+model.add(BatchNormalization())
+#model.add(Activation("relu"))
 model.add(MaxPooling2D((2,2), strides=(2,2)))
+model.add(Dropout(0.3))
 
 ## first set of CONV => RELU => POOL layers
-model.add(Conv2D(128, (3, 3), padding="same"))
-model.add(Activation("relu"))
+model.add(Conv2D(128, (3, 3), padding="same",activation = "relu"))
+#model.add(Activation("relu"))
 model.add(BatchNormalization())
 model.add(MaxPooling2D((2,2), strides=(2,2)))
 
 model.add(Flatten())
-model.add(Dense(nb_classes))
-model.add(Activation("softmax"))
+model.add(Dense(nb_classes,activation = "softmax"))
+#model.add(Activation("softmax"))
 
 model.compile(loss='categorical_crossentropy',optimizer='rmsprop',metrics=['accuracy'])
 model.summary()
 nb_epoch=50;
 batch_size=5;
-Y_train_labels=np_utils.to_categorical(train_labels,10)
+Y_train_labels=np_utils.to_categorical(y_train,10)
+Y_val_labels=np_utils.to_categorical(y_val,10)
 
 Y_test_labels=np_utils.to_categorical(test_labels,10)
 #model.fit(x_train,Y_train,batch_size=batch_size,epochs=nb_epoch,verbose=1,validation_data=(x_val, Y_val))
-model.fit(train_data,Y_train_labels,batch_size=batch_size,epochs=nb_epoch,verbose=1)
+from keras.callbacks import EarlyStopping
+early_stopping = EarlyStopping(monitor='val_loss', patience=5)
+seed=123
+model.fit(x_train,Y_train_labels,batch_size=batch_size,epochs=nb_epoch,verbose=1,validation_data=(x_val, Y_val_labels),callbacks=[early_stopping])
 predictions = model.predict_classes(test_data,verbose=1)
+
+# Final evaluation of the model
+scores =model.evaluate(x_val, Y_val_labels, verbose=0)
+print("CNN error: % .2f%%" % (100-scores[1]*100))
 
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, classification_report
 
